@@ -1,3 +1,17 @@
+
+/**
+ * Author: Marcos Antonios Charalambous 
+ * Written: 26/11/2020 
+ * Last updated: 01/12/2020
+ *
+ * Compilation command: javac -classpath .:stdlib.jar AntColonies.java 
+ * Execution command: java -classpath .:stdlib.jar AntColonies 10 20 R 0
+ *
+ * Implementation of the Ant Object.
+ *
+ */
+import java.util.Random;
+
 public class Ant {
 
 	private CellGrid terain; // The field in which it is located and operates.
@@ -37,6 +51,13 @@ public class Ant {
 		carriesFood = false; // It does not carry food at the start.
 	}
 
+	/**
+	 * Moves an ant by one step at a given point in time with the aid of private
+	 * methods searchFood() and goBackNest().
+	 * 
+	 * @param time
+	 *            Point in time the method was called.
+	 */
 	public void move(int time) {
 		if (!carriesFood)
 			searchFood(time);
@@ -44,95 +65,141 @@ public class Ant {
 			goBackNest(time);
 	}
 
+	/**
+	 * This method is called only if the ant does not hold a seed, which indicates
+	 * that it is looking for a food source. The search is mostly random, but the
+	 * ant avoids returning to where it was immediately before (thus preventing
+	 * circular steps back and forth). Also, among the points where it can proceed,
+	 * if any of them has any scent on it, then priority is given to the one with
+	 * the strongest scent. Otherwise, it chooses between them in a completely
+	 * random way. The ant can enter a nest (his own or another ants) but it never
+	 * takes a seed from a nest.
+	 * 
+	 * @param time
+	 *            Point in time the method was called.
+	 */
 	private void searchFood(int time) {
 		Cell current = terain.getCell(pos[0], pos[1]);
-		if (!current.withNest() && current.hasFood()) {
-			current.getFood();
-			carriesFood = true;
-			// return;
+		if (!current.withNest() && current.hasFood()) { // Check if the ant reached a food source.
+			current.getFood(); // Grab the food
+			carriesFood = true; // Change boolean variable to signify ant carrying food.
+			goBackNest(time); // Call goBackNest at the same time point.
+			return;
 		}
 
-		int up = -1, down = -1, left = -1, right = -1;
+		int directions[][] = new int[4][2]; // 2D array that stores all available positions the ant can move in.
+		int directionsScore[] = new int[4]; // Array that stores score for each available direction.
+		directions[0][0] = pos[0] - 1;
+		directions[0][1] = pos[1];
+		directions[1][0] = pos[0] + 1;
+		directions[1][1] = pos[1];
+		directions[2][0] = pos[0];
+		directions[2][1] = pos[1] - 1;
+		directions[3][0] = pos[0];
+		directions[3][1] = pos[1] + 1;
+		for (int i = 0; i < directionsScore.length; i++) // Calculate the score for each direction.
+			directionsScore[i] = calculateScore(directions[i][0], directions[i][1]);
+		sortArrays(directions, directionsScore); // Sort directionsScore and directions in ascending order.
 
-		if (terain.getCell(pos[0] - 1, pos[1]) != null && previousX != (pos[0] - 1))
-			up = terain.getCell(pos[0] - 1, pos[1]).getScent();
-		if (terain.getCell(pos[0] + 1, pos[1]) != null && previousX != (pos[0] + 1))
-			down = terain.getCell(pos[0] + 1, pos[1]).getScent();
-		if (terain.getCell(pos[0], pos[1] - 1) != null && previousY != (pos[1] - 1))
-			left = terain.getCell(pos[0], pos[1] - 1).getScent();
-		if (terain.getCell(pos[0], pos[1] + 1) != null && previousY != (pos[1] + 1))
-			right = terain.getCell(pos[0], pos[1] + 1).getScent();
+		// Calculations for the new position to move in.
+		Random rand = new Random();
+		int[] positionToGo;
+		if (directionsScore[3] == directionsScore[2] && directionsScore[3] == directionsScore[1]) {
+			// Case where there are three directions with the same score.
+			int randomIndex = rand.nextInt(3) + 1; // Choose randomly from the three directions.
+			positionToGo = directions[randomIndex];
+		} else if (directionsScore[3] == directionsScore[2]) {
+			// Case where there are two directions with the same score.
+			int randomIndex = rand.nextInt(2) + 2; // Choose randomly from the two directions.
+			positionToGo = directions[randomIndex];
+		} else
+			positionToGo = directions[3]; // The last cell has the largest amount of scent.
 
-		String largest = findMax(up, down, left, right);
-
-		terain.getCell(pos[0], pos[1]).removeAnt(id);
-		previousX = pos[0];
+		previousX = pos[0]; // Previous coordinates changed.
 		previousY = pos[1];
-		if (largest.equals("up"))
-			pos[0] = pos[0] - 1;
-		else if (largest.equals("down"))
-			pos[0] = pos[0] + 1;
-		else if (largest.equals("left"))
-			pos[1] = pos[1] - 1;
-		else if (largest.equals("right"))
-			pos[1] = pos[1] + 1;
-//		System.out.println("up " + up + " down " + down + " left " + left + " right " + right + " direction: " + largest );
-		current = terain.getCell(pos[0], pos[1]);
-		current.addAnt(id);
+
+		pos[0] = positionToGo[0]; // Current coordinates changed.
+		pos[1] = positionToGo[1];
+
+		current.removeAnt(id); // Ant removal from current position.
+
+		Cell next = terain.getCell(pos[0], pos[1]);
+		next.addAnt(id); // Add ant on current cell.
 	}
 
-	private String findMax(int up, int down, int left, int right) {
-		String largest = "";
-
-		if (up == -1) {
-			if (down >= left && down >= right)
-				largest = "down";
-			else if (left >= down && left >= right)
-				largest = "left";
-			else
-				largest = "right";
-		} else if (down == -1) {
-			if (up >= left && up >= right)
-				largest = "up";
-			else if (left >= up && left >= right)
-				largest = "left";
-			else
-				largest = "right";
-		} else if (left == -1) {
-			if (up >= down && up >= right)
-				largest = "up";
-			else if (down >= up && down >= right)
-				largest = "down";
-			else
-				largest = "right";
-		} else {
-			if (up >= down && up >= left)
-				largest = "up";
-			else if (down >= up && down >= left)
-				largest = "down";
-			else
-				largest = "left";
-		}
-		return largest;
+	/**
+	 * This a helper function for assisting in the score calculation. If the point
+	 * (x,y) is the same as the previous position or either X or Y are out of the
+	 * terrain bounds, -1 is returned. Otherwise, the scent of that cell is
+	 * returned.
+	 * 
+	 * @param x
+	 *            Coordinates on the X axle.
+	 * @param y
+	 *            Coordinates on the Y axle.
+	 * @return Score for a given point.
+	 */
+	private int calculateScore(int x, int y) {
+		if (wasAt(x, y)) // Same as previous position.
+			return -1;
+		if (x == terain.getSize() || x == -1 || y == terain.getSize() || y == -1) // Out of bounds.
+			return -1;
+		else
+			return terain.getCell(x, y).getScent(); // Returned the scent of a valid cell.
 	}
 
-	
+	/**
+	 * Bubble Sort simultaneously directionsScore and directions in ascending order.
+	 * 
+	 * @param directions
+	 *            2D array that stores all available positions the ant can move in.
+	 * @param directionsScore
+	 *            Array that stores score for each available direction.
+	 */
+	private void sortArrays(int directions[][], int directionsScore[]) {
+		int n = directionsScore.length;
+		for (int i = 0; i < n - 1; i++)
+			for (int j = 0; j < n - i - 1; j++)
+				if (directionsScore[j] > directionsScore[j + 1]) {
+					int temp = directionsScore[j];
+					int[] tempArray = directions[j];
+					directionsScore[j] = directionsScore[j + 1];
+					directions[j] = directions[j + 1];
+					directionsScore[j + 1] = temp;
+					directions[j + 1] = tempArray;
+				}
+	}
+
+	/**
+	 * If the ant holds a seed in its mouth and consequently has discovered a food
+	 * source, then it chooses its next step based on one of the shortest routes
+	 * back to its nest. For this purpose, Manhattan Distance is used. In addition,
+	 * it adds to each point it passes while it returns back to its nest a unit of
+	 * scent, to help it return to the same food source after first storing the seed
+	 * it holds in its nest. Moreover, the scent unit evaporates over a given period
+	 * of time.
+	 * 
+	 * @param time
+	 *            Point in time the method was called.
+	 */
 	private void goBackNest(int time) {
 		Cell current = terain.getCell(pos[0], pos[1]);
 		if (isAtNest()) { // Reached his nest.
-			current.putFood();
-			carriesFood = false;
-			// return;
+			current.putFood(); // Unload the food.
+			carriesFood = false; // Food does not carry food anymore.
+			return;
 		}
-
-		int[] distances = new int[4];
+		current.removeAnt(id); // Ant removal from current cell.
+		current.addScent(time); // Scent is added to the cell it is about to leave.
 
 		// Manhattan Distance calculations
+		int[] distances = new int[4]; // Store Manhattan Distance score for each direction.
 		distances[0] = Math.abs((pos[0] - 1) - nestPos[0]) + Math.abs(pos[1] - nestPos[1]); // Up
 		distances[1] = Math.abs((pos[0] + 1) - nestPos[0]) + Math.abs(pos[1] - nestPos[1]); // Down
 		distances[2] = Math.abs(pos[0] - nestPos[0]) + Math.abs((pos[1] - 1) - nestPos[1]); // Left
 		distances[3] = Math.abs(pos[0] - nestPos[0]) + Math.abs((pos[1] + 1) - nestPos[1]); // Right
 
+		// Calculate the minimum distance.
 		int min = Integer.MAX_VALUE;
 		int minIndex = 0;
 		for (int i = 0; i < distances.length; i++)
@@ -141,27 +208,26 @@ public class Ant {
 				minIndex = i;
 			}
 
-		terain.getCell(pos[0], pos[1]).removeAnt(id);
-		previousX = pos[0];
+		previousX = pos[0]; // Change previous position to point to current one.
 		previousY = pos[1];
-		switch (minIndex) {
-		case 0:
+		// Calculation of the new position in terrain.
+		switch (minIndex) { // Find direction with shorter distance.
+		case 0: // Up
 			pos[0] = pos[0] - 1;
 			break;
-		case 1:
+		case 1: // Down
 			pos[0] = pos[0] + 1;
 			break;
-		case 2:
+		case 2: // Left
 			pos[1] = pos[1] - 1;
 			break;
-		case 3:
+		case 3: // Right
 			pos[1] = pos[1] + 1;
 			break;
 		}
 
-		current = terain.getCell(pos[0], pos[1]);
-		current.addScent(time);
-		current.addAnt(id);
+		Cell next = terain.getCell(pos[0], pos[1]);
+		next.addAnt(id); // Move ant to new cell.
 	}
 
 	/**
@@ -241,6 +307,10 @@ public class Ant {
 		return carriesFood;
 	}
 
+	/**
+	 * The toString method gives the external presentation for the Object Ant as a
+	 * string.
+	 */
 	public String toString() {
 		String s = color + " Ant-" + id + " at (" + pos[0] + "," + pos[1] + ").";
 		if (terain.getCell(pos[0], pos[1]).hasFood() && !isAtNest() && !terain.getCell(pos[0], pos[1]).withNest()) {

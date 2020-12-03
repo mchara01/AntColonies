@@ -1,3 +1,15 @@
+
+/**
+ * Author: Marcos Antonios Charalambous 
+ * Written: 26/11/2020
+ * Last updated: 01/12/2020
+ *
+ * Compilation command: javac -classpath .:stdlib.jar AntColonies.java 
+ * Execution command: java -classpath .:stdlib.jar AntColonies 10 20 R 0
+ *
+ * Implementation of the Cell Object.
+ *
+ */
 public class Cell {
 
 	private boolean hasNest; // Whether it has a nest on it.
@@ -19,7 +31,7 @@ public class Cell {
 	}
 
 	/**
-	 * Returns whether cell has currently seeds on it.
+	 * Returns whether cell has currently any seeds on it.
 	 * 
 	 * @return Cell contains food or not.
 	 */
@@ -37,14 +49,14 @@ public class Cell {
 	}
 
 	/**
-	 * Add one seed to the total amount.
+	 * Adds one seed to the total amount.
 	 */
 	public void putFood() {
 		foodAmount++;
 	}
 
 	/**
-	 * Add a given number of seeds to the total amount.
+	 * Adds a given number of seeds to the total amount.
 	 * 
 	 * @param food
 	 *            Number of seeds to be added.
@@ -54,14 +66,14 @@ public class Cell {
 	}
 
 	/**
-	 * Returns a boolean value whether the cell currently has any ants on it.
+	 * Returns a boolean value whether the cell currently has any ants on it or not.
 	 * 
 	 * @return If cell has ants or not.
 	 */
 	public boolean hasAnts() {
-		if (!(antIds == null) && antIds.length > 0)
-			return true;
-		return false;
+		if (antIds == null)
+			return false;
+		return antIds.length > 0;
 	}
 
 	/**
@@ -90,74 +102,94 @@ public class Cell {
 	}
 
 	/**
-	 * Add the ant with antID on it which means the ant in question proceeded to
-	 * this position.
+	 * Add the ant with antID on the current Cell, which means that the ant in
+	 * question proceeded to this position.
 	 * 
 	 * @param antID
 	 *            ID of ant that move to the cell.
 	 */
 	public void addAnt(int antID) {
-		if (antIds == null) {
-			antIds = new int[1];
-			antIds[0] = antID;
+		if (antIds == null) { // Check if antIds array has not been initialised yet.
+			antIds = new int[1]; // Initialise it with only one index.
+			antIds[0] = antID; // Place antID on first index.
 		} else {
-			antIds = expand(antIds);
-			antIds[antIds.length - 1] = antID;
+			int[] tempArray = new int[antIds.length + 1]; // New temporary array.
+			for (int i = 0; i < antIds.length; i++)
+				tempArray[i] = antIds[i]; // Copy ants into temporary array.
+			tempArray[antIds.length] = antID; // Place new ant on last index of array.
+			antIds = new int[tempArray.length]; // New antIds array, expanded.
+			for (int i = 0; i < tempArray.length; i++)
+				antIds[i] = tempArray[i]; // Copy temporary array back in antIds.
 		}
-	}
-
-	private int[] expand(int[] antIds) {
-		int[] newArray = new int[antIds.length + 1];
-		System.arraycopy(antIds, 0, newArray, 0, antIds.length);
-		return newArray;
 	}
 
 	/**
 	 * Remove the ant with antID identity which means that the ant left this
 	 * position. To remove an ant with ID antID from the array antIds, we simply
-	 * "shift" all elements after it. This means that we're going to iterate through
-	 * all the elements after antID and simply "move" them one place to the left in
-	 * order to replace the ID of the ant we want to remove.
+	 * "shift" all elements after it. This means that we are going to iterate
+	 * through all the elements after antID and simply "move" them one place to the
+	 * left in order to replace the ID of the ant we want to remove.
 	 * 
 	 * @param antID
 	 *            ID of ant that left the cell.
 	 */
 	public void removeAnt(int antID) {
-		if (antIds.length == 0)
+		if (antIds == null) // If array is empty, exit to avoid a crash.
 			return;
-		int[] newArray = new int[antIds.length - 1];
+
+		int newSize = antIds.length - 1;
+		if (newSize == 0) { // If new array size after deletion is 0, make antIds equal to null.
+			antIds = null;
+			return;
+		}
+
+		int[] tempArray = new int[newSize];
 		int index = 0;
 		for (int i = 0; i < antIds.length; i++)
-			if (antIds[i] == antID)
+			if (antIds[i] == antID) { // Store index of antID.
 				index = i;
+				break;
+			}
 
 		for (int i = 0, j = 0; i < antIds.length; i++)
 			if (i != index)
-				newArray[j++] = antIds[i];
+				tempArray[j++] = antIds[i]; // Save all ants in a temporary array, except from antID.
 
-		antIds = newArray;
+		antIds = new int[newSize]; // New antIds with one space less.
+		for (int i = 0; i < tempArray.length; i++)
+			antIds[i] = tempArray[i]; // Copy back ants from temporary array.
 	}
 
 	/**
-	 * Add one scent unit at a given time point.
+	 * Add one scent unit at a given time point. All necessary checks are made to
+	 * the times array to ensure that it does not crash and it is expanded
+	 * appropriately.
 	 * 
 	 * @param time
 	 *            Time in which the scent will be added.
 	 */
 	public void addScent(int time) {
-		if (times == null) {
-			times = new int[100];
-			times[time - 1]++;
-		} else {
-			scentAmount++;
-			times[time - 1]++;
+		scentAmount++;
+		if (times == null) { // Check if times array has not been initialised yet.
+			times = new int[1];
+			times[0] = time; // Place new time point at first index.
+			return;
 		}
+
+		int[] tempArray = new int[times.length + 1]; // New temporary array with same size plus one.
+		for (int i = 0; i < times.length; i++)
+			tempArray[i] = times[i]; // Copy times into a temporary array.
+		tempArray[times.length] = time; // Add new time point at last index.
+
+		times = new int[tempArray.length];
+		for (int i = 0; i < times.length; i++)
+			times[i] = tempArray[i]; // Copy temporary array into new times array.
 	}
 
 	/**
-	 * Subtract all the scent units that have evaporated. For a scent unit to be
-	 * evaporated, this means that the time between the current time (curTime) and
-	 * the time that the anointing was done is greater than the elapsed time.
+	 * Remove all the scent units from times array that have evaporated. For a scent
+	 * unit to be evaporated, the time between the current time (curTime) and the
+	 * time that the anointing was done is greater than the elapsed time.
 	 * 
 	 * @param curTime
 	 *            Current point in time.
@@ -165,13 +197,27 @@ public class Cell {
 	 *            Max life time of a seed.
 	 */
 	public void updateScent(int curTime, int elapsed) {
-		if (times == null)
-			times = new int[100];
+		if (times == null) // Check if times array has not been initialised yet.
+			return;
+
+		int removalCount = 0; // Counter for scents that have been evaporated.
 		for (int i = 0; i < times.length; i++)
-			if (curTime - i > elapsed) {
-				scentAmount -= times[i];
-				times[i] = 0;
+			if (curTime - times[i] > elapsed) { // Find evaporated scents.
+				scentAmount--;
+				removalCount++;
 			}
+
+		if (removalCount == times.length) { // Check if all scents have been evaporated.
+			times = null;
+			return;
+		}
+
+		int[] tempArray = new int[times.length - removalCount]; // Temporary array to save only valid scents.
+		for (int i = removalCount; i < times.length; i++) // Times are sorted in the array, so start from removal count.
+			tempArray[i - removalCount] = times[i]; // Copy valid scent values into temporary array.
+		times = new int[tempArray.length]; // New times array declared.
+		for (int i = 0; i < tempArray.length; i++)
+			times[i] = tempArray[i]; // Copy valid scent values into times array.
 	}
 
 	/**

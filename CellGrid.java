@@ -1,7 +1,8 @@
+
 /**
- * Author: Marcos Antonios Charalambous
+ * Author: Marcos Antonios Charalambous 
  * Written: 26/11/2020
- * Last updated: 26/11/2020
+ * Last updated: 01/12/2020
  *
  * Compilation command: javac -classpath .:stdlib.jar AntColonies.java
  * Execution command: java -classpath .:stdlib.jar AntColonies 10 20 R 0
@@ -47,8 +48,6 @@ public class CellGrid {
 	 * @return Cell at row i and column j.
 	 */
 	public Cell getCell(int i, int j) {
-		if (i < 0 || i >= size || j < 0 || j >= size)
-			return null;
 		return grid[i][j];
 	}
 
@@ -141,6 +140,7 @@ public class CellGrid {
 
 		for (int i = 0; i < size; i++)
 			for (int j = 0; j < size; j++) {
+				// Draws the white nest with the black food source on top.
 				if (getCell(i, j).withNest() && getCell(i, j).hasFood()) {
 					StdDraw.setPenRadius(0.8 / size);
 					StdDraw.setPenColor(StdDraw.WHITE);
@@ -149,11 +149,13 @@ public class CellGrid {
 					StdDraw.setPenColor(StdDraw.BLACK);
 					StdDraw.point((double) i, (double) j);
 				}
+				// Draws the white nest.
 				if (getCell(i, j).withNest() && !getCell(i, j).hasFood()) {
 					StdDraw.setPenRadius(0.8 / size);
 					StdDraw.setPenColor(StdDraw.WHITE);
 					StdDraw.point((double) i, (double) j);
 				}
+				// Draws the black food source.
 				if (getCell(i, j).hasFood() && !getCell(i, j).withNest()) {
 					StdDraw.setPenRadius(0.6 / size);
 					StdDraw.setPenColor(StdDraw.BLACK);
